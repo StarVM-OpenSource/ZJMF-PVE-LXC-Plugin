@@ -1,15 +1,15 @@
-# ProxmoxVE-LXC-module
-[个人博客](https://imzxw.cn) </br>
+# ProxmoxVE-LXC-X-module
+</br>
 
-<h3 align="center">ProxmoxVE-LXC</h3></br>
+<h3 align="center">ProxmoxVE LXC X</h3></br>
 
 魔方财务系统对接proxmoxVE的一款模块，可以对接pve的容器功能
 
-目前已经实现了绝大部分的功能，由于个人工作原因无法继续写下去了，放出来给大家做个参考吧
+此模块是原作者Jovesong1的作品改版，添加了很多有用的功能，修复了一些潜在的Bug。
 
-欢迎与我交流QQ:1666633881
 <!--gold sponsors start-->
 
+<br>
 
 ## 目前实现了那些功能 ？
 
