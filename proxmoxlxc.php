@@ -1,12 +1,12 @@
 <?php
-// Jovesong编
+// Jovesong编 MasonDye改
 use app\common\logic\RunMap;
 use app\common\model\HostModel;
 use think\Db;
 
 // 配置数据
 function proxmoxlxc_MetaData(){
-	return ['DisplayName'=>'proxmox-Lxc对接模块', 'APIVersion'=>'1.0', 'HelpDoc'=>'https://imzxw.cn/?p=144'];
+	return ['DisplayName'=>'ProxmoxVE-LXC对接模块', 'APIVersion'=>'2.0', 'HelpDoc'=>'https://www.almondnet.cn/'];
 }
 
 // 测试链接
@@ -41,7 +41,7 @@ function proxmoxlxc_ConfigOptions(){
         [
             'type'=>'text', 
             'name'=>'系统网卡名称', 
-            'description'=>'选择局域网网卡',
+            'description'=>'分配给虚拟机的网卡',
             'placeholder'=>'vmbr0',
             'default'=>"vmbr0",
             'key'=>'net_name'
@@ -68,8 +68,7 @@ function proxmoxlxc_ConfigOptions(){
             'placeholder'=>'172.16.0.2,172.16.0.20',
             'default'=>"172.16.0.2,172.16.0.20",
             'key'=>'ip_pool'
-        ],
-        [
+        ],[
             'type'=>'text', 
             'name'=>'掩码', 
             'description'=>'掩码地址',
@@ -101,7 +100,7 @@ function proxmoxlxc_ConfigOptions(){
         [
             'type'=>'dropdown', 
             'name'=>'交换内存', 
-            'description'=>'酌情分配',
+            'description'=>'按照需求和定位酌情分配',
             'options'=>[
                      'noswap'=>'不分配',
                      '1024'=>'1024',
@@ -124,8 +123,8 @@ function proxmoxlxc_ConfigOptions(){
             'type'=>'text', 
             'name'=>'爱快地址', 
             'description'=>'请包含请求头加端口',
-            'placeholder'=>'local-lvm',
-            'default'=>"local-lvm",
+            'placeholder'=>'http://example.com:80',
+            'default'=>"http://example.com:80",
             'key'=>'ikuai_url'
         ],[
             'type'=>'text', 
@@ -145,9 +144,47 @@ function proxmoxlxc_ConfigOptions(){
            'type'=>'text', 
             'name'=>'映射展示地址', 
             'description'=>'类型为标准模式勿略',
-            'placeholder'=>'baidu.com',
-            'default'=>"baidu.com",
+            'placeholder'=>'example.com',
+            'default'=>"example.com",
             'key'=>'ikuai_ip'
+        ],[
+            'type'=>'text', 
+            'name'=>'端口池-开始', 
+            'description'=>'端口范围（开始）',
+            'placeholder'=>'40000',
+            'default'=>"40000",
+            'key'=>'port_pool_start'
+        ],[
+            'type'=>'text', 
+            'name'=>'VMID起始值', 
+            'description'=>'VMID起始值，唯一值不能相同',
+            'placeholder'=>'500',
+            'default'=>"500",
+            'key'=>'vmid_start'
+        ],[
+            'type'=>'text', 
+            'name'=>'产品唯一值', 
+            'description'=>'产品唯一值，不能相同，推荐UUID',
+            'placeholder'=>'D6D58A71-BA11-9192-E822-B2F46EBF1C65',
+            'default'=>"D6D58A71-BA11-9192-E822-B2F46EBF1C65",
+            'key'=>'product_unique_value'
+        ],[
+            'type'=>'text', 
+            'name'=>'端口池-结束', 
+            'description'=>'端口范围(结束)',
+            'placeholder'=>'50000',
+            'default'=>"50000",
+            'key'=>'port_pool_end'
+        ],[
+            'type'=>'dropdown', 
+            'name'=>'嵌套虚拟化', 
+            'description'=>'Docker等虚拟化是否允许',
+            'options'=>[
+                     'open'=>'开启',
+                     'close'=>'关闭',
+            ],
+            'default'=>"open",
+            'key'=>'nesting'
         ],
         
         
@@ -166,13 +203,13 @@ function proxmoxlxc_ClientArea($params){
         // 'firewalld'=>['name'=>'防火墙'],
         'snapshot'=>['name'=>'快照'],
         'connect'=>['name'=>'远程连接'],
-        'rw'=>['name'=>'操作记录'],
-        'demo'=>['name'=>'测试'],
-        
+        // 'demo'=>['name'=>'测试'],
     ];
     if($params['configoptions']['nat']=='nat'){
         $info['nat']=['name'=>'端口映射'];
     }
+    
+    $info['rw']=['name'=>'操作记录'];
 
     return $info;
 }
@@ -256,6 +293,13 @@ function proxmoxlxc_ClientAreaOutput($params, $key){
         
         $nat_list = proxmoxlxc_nat_get_list($params);
         
+        // $port_pool = explode(',', $params['configoptions']['port_pool_opt']);
+        // $min_port = (int)$port_pool[0];
+        // $max_port = (int)$port_pool[1];
+        
+        $min_port = (int)$params['configoptions']['port_pool_start'];
+        $max_port = (int)$params['configoptions']['port_pool_end'];
+        
         if($nat_list['ErrMsg']=='Success'){
             //  return "登陆成功了 本币";
             // return $info;
@@ -266,7 +310,9 @@ function proxmoxlxc_ClientAreaOutput($params, $key){
             'vars'=>[
                 'params'=>$params,
                 'list'=>$nat_list['Data'],
-                'test'=>json_encode($params)
+                'test'=>json_encode($params),
+                'max_port'=>$max_port,
+                'min_port'=>$min_port
                 // 'temp'=>json_encode(proxmoxlxc_tasks_get_list($params)),
                 // 'tasks'=>proxmoxlxc_tasks_get_list($params)
                 
@@ -591,7 +637,11 @@ function proxmoxlxc_Vnc($params){
 
     $ticket = proxmoxlxc_get_ticket($params);
     if($ticket){
+        //noVNC 登入
+        //return ['status'=>'success','msg'=>'VNC连接创建成功','url'=>$params['server_http_prefix']."://".$params['server_ip'].":".$params['port']."/novnc/mgnovnc.html?novnc=1&console=lxc&node=".$params['server_host']."&vmid=".$params['domain']."&token=".$ticket];
+        //XtermJS 登入
         return ['status'=>'success','msg'=>'VNC连接创建成功','url'=>$params['server_http_prefix']."://".$params['server_ip'].":".$params['port']."/novnc/mgnovnc.html?xtermjs=1&console=lxc&node=".$params['server_host']."&vmid=".$params['domain']."&token=".$ticket];
+        //return ['status'=>'success','msg'=>'VNC连接创建成功','url'=>$params['server_http_prefix']."://".$params['server_ip'].":".$params['port']."?console=shell&xtermjs=1"."&vmid=".$params['domain']."&node=".$params['server_host']."&token=".$ticket];
     }
     
     
@@ -664,7 +714,6 @@ function proxmoxlxc_CreateAccount($params){
        
     }
     
-    
     // 构建JSON结构
     
     $json_network['server_vmid'] = $vmid;//对应主机VMID
@@ -704,6 +753,11 @@ function proxmoxlxc_CreateAccount($params){
     $data['vmid'] = $vmid; // vmid
     $data['hostname']=$params['domain']; 
     $data['unprivileged']=1;
+    if($params['configoptions']['nesting'] == 'open'){ //嵌套虚拟化允许
+        // $data['features']='nesting'."%3D"."1"."%2C".'keyctl'."%3D"."1";
+        $data['features']='nesting'."%3D"."1";
+        // $data['features']='nesting'."%3D"."1"."%2C".'keyctl'."%3D"."1"."%2C".'fuse'."%3D"."1";
+    }
     $data['password']=$params['password'];
     $data['rootfs']=$params['configoptions']['system_disk'].":".$params['configoptions_upgrade']['disk'];
     $data['cores']=$params['configoptions_upgrade']['cpu'];
@@ -712,7 +766,7 @@ function proxmoxlxc_CreateAccount($params){
     $data['cmode']='console';
     $data['onboot'] = true;
     $data['nameserver'] = $params['configoptions']['dns'];
-    $data['description'] = "来自: 魔方Proxmox-Lxc模块</br>开通用户:".$params['user_info']['username']."|".$params['user_info']['id']."</br>产品编号:".$params['hostid']."</br>产品密码:".$params['password'];//描述
+    $data['description'] = "<h1>ArcCloud</h1></br>来自: 智简魔方ProxmoxVE-LXC模块</br>开通用户:".$params['user_info']['username']."|".$params['user_info']['id']."</br>产品编号:".$params['hostid']."</br>产品密码:".$params['password'];//描述
     // $data['bwlimit']=$params['configoptions_upgrade']['network'];
     if($params['configoptions']['swap'] == '1:1'){
         // 对等分配swap
@@ -723,7 +777,6 @@ function proxmoxlxc_CreateAccount($params){
     }
     
     /*请求后端创建服务器*/
-    
     $info = json_decode(proxmoxlxc_request($params,"/api2/extjs/nodes/".$params['server_host']."/lxc",$data,"POST"),true);
     /*结果处理*/
     
@@ -764,7 +817,8 @@ function proxmoxlxc_CreateAccount($params){
         
         return ['status'=>'success'];
     }else{
-        return ['status'=>'error','msg'=>json_encode($info)];
+        // 错误处理 10086
+        return ['status'=>'error','msg'=>json_encode($info).json_encode($params).json_encode($data['ostemplate'])];
     }
     
     
@@ -827,6 +881,7 @@ function proxmoxlxc_TerminateAccount ($params){
                 foreach($nat_list['Data']['data'] as $key=>$value){
                     // 执行删除
                     $port['id'] = $value['id'];
+                    $port['wan_port'] = $value['wan_port'];
                     $return_info = proxmoxlxc_nat_del($params,$port);
                     
                     // active_logs("执行删除映射结果:".json_encode($return_info),$params['uid'],2);
@@ -903,7 +958,7 @@ function proxmoxlxc_HardOff ($params){
 
 // 暂停
 function proxmoxlxc_SuspendAccount ($params){
-    
+    proxmoxlxc_HardOff($params);
 }
 // 解除暂停
 function proxmoxlxc_UnsuspendAccount($params){
@@ -926,17 +981,136 @@ function proxmoxlxc_Getcurrent($params){
     return proxmoxlxc_GET_lxc_info($params);
 }
 
-// 获取VMID
-function proxmoxlxc_nextid($params){
 
-        if(!proxmoxlxc_Pvestatus($params)){
-            // return ['status'=>'error','msg'=>'受控端异常'];
-            return 0;
-        }else{
-             $request =  json_decode(proxmoxlxc_request($params,"/api2/json/cluster/nextid"),true);
-             return $request['data'];
+// 获取VMID
+function proxmoxlxc_nextid($params) {
+    $vmid_file_path = __DIR__ . "/vmid.json";
+    $product_unique_value = $params['configoptions']['product_unique_value'];
+    $start_vmid = (int)$params['configoptions']['vmid_start'];
+
+    // 初始化 $vmid_data
+    $vmid_data = [];
+
+    // 文件存在并且可读
+    if (file_exists($vmid_file_path)) {
+        $vmid_file = fopen($vmid_file_path, "r+");
+        if (flock($vmid_file, LOCK_EX)) {
+            $file_content = fread($vmid_file, filesize($vmid_file_path));
+            if ($file_content !== false && trim($file_content) !== '') {
+                $vmid_data = json_decode($file_content, true);
+
+                // 检查是否JSON解析失败
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    $vmid_data = []; // 解析失败，初始化为空数组
+                }
+            }
+
+            if (isset($vmid_data[$product_unique_value])) {
+                // 获取当前 VMID 并返回
+                $current_vmid = (int)$vmid_data[$product_unique_value]['data'];
+
+                // 更新 VMID 并写回文件
+                $vmid_data[$product_unique_value]['data'] = $current_vmid + 1;
+                ftruncate($vmid_file, 0);
+                rewind($vmid_file);
+                fwrite($vmid_file, json_encode($vmid_data, JSON_PRETTY_PRINT));
+                fflush($vmid_file);
+                flock($vmid_file, LOCK_UN);
+                fclose($vmid_file);
+
+                return $current_vmid;
+            }
+
+            flock($vmid_file, LOCK_UN);
+        }
+        fclose($vmid_file);
+    }
+
+    // 文件不存在或没有产品唯一值，初始化并写入
+    $vmid_data[$product_unique_value] = ['data' => $start_vmid];
+
+    // 合并数据
+    if (file_exists($vmid_file_path)) {
+        $existing_data = json_decode(file_get_contents($vmid_file_path), true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($existing_data)) {
+            $vmid_data = array_merge($existing_data, $vmid_data);
         }
     }
+
+    $vmid_file = fopen($vmid_file_path, "w");
+    if (flock($vmid_file, LOCK_EX)) {
+        fwrite($vmid_file, json_encode($vmid_data, JSON_PRETTY_PRINT));
+        fflush($vmid_file);
+        flock($vmid_file, LOCK_UN);
+    }
+    fclose($vmid_file);
+
+    return $start_vmid;
+}
+
+
+
+// 删除VMID
+// 这个功能先咕咕，没思路
+function proxmoxlxc_delete_id($params) {
+    
+}
+
+
+// 没有唯一id，被取代
+// 获取VMID
+// function proxmoxlxc_nextid($params) {
+//     $vmid_file_path = __DIR__ . "/vmid.json";
+
+//     // 检查文件是否存在
+//     if (file_exists($vmid_file_path)) {
+//         $vmid_file_size = filesize($vmid_file_path);
+
+//         if ($vmid_file_size > 0) {
+//             // 文件存在且不为空，读取 JSON 数据
+//             $vmid_file = fopen($vmid_file_path, "r");
+//             $vmid_data = json_decode(fread($vmid_file, $vmid_file_size), true);
+//             fclose($vmid_file);
+
+//             // 获取当前 VMID 并返回
+//             $current_vmid = (int)$vmid_data['data'];
+
+//             // 将新的 VMID 加 1 并写回文件
+//             $new_vmid_data = ['data' => $current_vmid + 1];
+//             $vmid_file = fopen($vmid_file_path, "w");
+//             fwrite($vmid_file, json_encode($new_vmid_data, JSON_PRETTY_PRINT));
+//             fclose($vmid_file);
+
+//             return $current_vmid;
+//         }
+//     }
+
+//     // 文件不存在或为空，写入初始 VMID 并返回
+//     $start_vmid = (int)$params['configoptions']['vmid_start'];
+//     $new_vmid_data = ['data' => $start_vmid];
+//     $vmid_file = fopen($vmid_file_path, "w");
+//     fwrite($vmid_file, json_encode($new_vmid_data, JSON_PRETTY_PRINT));
+//     fclose($vmid_file);
+
+//     return $start_vmid;
+// }
+
+
+
+//老的版本
+// 获取VMID
+// function proxmoxlxc_nextid($params){
+
+//         if(!proxmoxlxc_Pvestatus($params)){
+//             // return ['status'=>'error','msg'=>'受控端异常'];
+//             return 0;
+//         }else{
+//              $request =  json_decode(proxmoxlxc_request($params,"/api2/json/cluster/nextid"),true);
+//              return $request['data'];
+//         }
+//     }
+
+
 
 // 检测pve状态
 function proxmoxlxc_Pvestatus($params){
@@ -1062,10 +1236,23 @@ function proxmoxlxc_create_snapshot($params){
     
     $post = input('post.');
     
+    // 检查传入的 快照名称是否符合后端pve服务器的要求
+    if (!isset($post['name']) || !preg_match('/^[a-zA-Z][a-zA-Z0-9_]{1,}$/', $post['name'])) {
+        return ['ErrMsg' => 'IllegalFormat'];
+    }
+
+    // 检查快照描述是否超出了100字
+    if (!isset($post['description']) || strlen($post['description']) > 100) {
+        return ['ErrMsg' => 'IllegalFormat'];
+    }
+    
     $data['snapname'] = $post['name'];
     $data['description'] = $post['description'];
     
     $request =  json_decode(proxmoxlxc_request($params,"/api2/json/nodes/".$params['server_host']."/lxc/".$params['domain']."/snapshot/",$data,"POST"),true);
+    
+    // 调试代码
+    //active_logs(json_encode($request).json_encode($data).$params['server_host'].$params['domain']);
     
     if($request['data']==null||$request==null){
         return false;
@@ -1141,81 +1328,279 @@ function proxmoxlxc_nat_get_list($params){
     //  return proxmoxlxc_nat_request($params,$url,$dataa);
 }
 
+
+
 // 添加映射
-function proxmoxlxc_nat_add($params,$post=""){
-    
+function proxmoxlxc_nat_add($params, $post = "") {
     // 判断是从哪里请求的
-    if($post==""){
+    if ($post == "") {
         // 从前台请求的 需要手动拉一下内网ip
         $post = input('post.');
         $post['lan_addr'] = $params['dedicatedip'];
     }
-    
-    // 如果没传递外网端口，就随机生成
-    if($post['wan_port']==""){
-         $post['wan_port'] = rand(20000,60000);
+
+    // 映射数量限制
+    $nat_list = proxmoxlxc_nat_get_list($params);
+    $nat_limit_error = ['ErrMsg' => 'ReachLimit'];
+
+    if ($nat_list['Data']['total'] == $params['configoptions_upgrade']['nat_limit']) {
+        return $nat_limit_error;
     }
+
+    // 获取端口范围
+    // $port_pool = explode(',', $params['configoptions']['port_pool_opt']);
+    // $min_port = (int)$port_pool[0];
+    // $max_port = (int)$port_pool[1];
+    $min_port = (int)$params['configoptions']['port_pool_start'];
+    $max_port = (int)$params['configoptions']['port_pool_end'];
+
+    // 检查 post['wan_port'] 是否在合法范围内
+    if (!empty($post['wan_port']) && ($post['wan_port'] < $min_port || $post['wan_port'] > $max_port)) {
+        return ['ErrMsg' => 'IllegalPort'];
+    }
+
+    // 端口分配代码开始
+    $port_while_num_max = 100; // 端口生成循环次数，如果超出阈值直接弹出端口不足
+    $port_while_num = 0;
     
-    $url = $params['configoptions']['ikuai_url']."/Action/call";
+    $port_pool_file_path = __DIR__ . "/port_pool.json";
+
+    while (true) {
+        if ($port_while_num >= $port_while_num_max) {
+            return ['ErrMsg' => 'PortUnavailable'];
+        }
+
+        // 如果未传递外网端口，就按照端口池随机生成
+        if (empty($post['wan_port'])) {
+            $port = rand($min_port, $max_port);
+        } else {
+            $port = $post['wan_port'];
+        }
+
+        // 读取端口池文件
+        if (file_exists($port_pool_file_path)) {
+            $port_pool_file = fopen($port_pool_file_path, "r");
+            $port_pool_file_json = json_decode(fread($port_pool_file, filesize($port_pool_file_path)), true);
+            fclose($port_pool_file);
+        } else {
+            $port_pool_file_json = [];
+        }
+
+        $port_taken = false;
+
+        foreach ($port_pool_file_json as $key => $value) {
+            if ($key == $port) {
+                $port_taken = true;
+                break;
+            }
+        }
+
+        if (!$port_taken) {
+            // 端口没有被占用，执行后续操作
+            //if (empty($post['wan_port'])) {
+                // 更新端口池文件
+                //$port_pool_file_json[$port] = ['server_vmid' => $params['domain']];
+                $port_pool_file_json[$port] = [
+                    'server_vmid' => $params['domain'],
+                    'server_ip' => $params['dedicatedip']
+                ];
+                
+                $port_pool_file = fopen($port_pool_file_path, "w");
+                fwrite($port_pool_file, json_encode($port_pool_file_json, JSON_PRETTY_PRINT));
+                fclose($port_pool_file);
+            //}
+
+            $url = $params['configoptions']['ikuai_url'] . "/Action/call";
+            $data['func_name'] = "dnat";
+            $data['action'] = "add";
+            $data['param'] = [
+                "enabled" => "yes",
+                "comment" => $post['comment'],
+                "interface" => "all",
+                "lan_addr" => $post['lan_addr'],
+                "protocol" => $post['type'],
+                "wan_port" => $port,
+                "lan_port" => $post['lan_port'],
+                "src_addr" => ""
+            ];
+
+            $info = json_decode(proxmoxlxc_nat_request($params, $url, $data), true);
+            $info['wan_port'] = $port;
+
+            // 写入后台日志
+            //active_logs("执行创建映射函数返回结果: " . json_encode($info) . proxmoxlxc_nextid($params) . " | 端口池：" . json_encode($port_pool), $params['uid'], 2);
+            active_logs("执行创建映射函数返回结果: " . json_encode($info) . " | 端口池：" . json_encode($port_pool), $params['uid'], 2);
+            return $info;
+        } elseif (!empty($post['wan_port'])) {
+            // 如果 post['wan_port'] 有值且被占用
+            return ['ErrMsg' => 'PortCantBeUse'];
+        }
+
+        // 增加尝试次数
+        $port_while_num++;
+    }
+}
+
+
+// 之前的，作为备份，不支持外部端口自定义
+// 添加映射
+// function proxmoxlxc_nat_add($params,$post=""){
+    
+//     // 判断是从哪里请求的
+//     if($post==""){
+//         // 从前台请求的 需要手动拉一下内网ip
+//         $post = input('post.');
+//         $post['lan_addr'] = $params['dedicatedip'];
+//     }
+    
+//     // 映射数量限制
+//     $nat_list = proxmoxlxc_nat_get_list($params);
+
+//     $nat_limit_error = ['ErrMsg' => 'ReachLimit'];
+
+//     if ($nat_list['Data']['total'] == $params['configoptions_upgrade']['nat_limit']) {
+//         return $nat_limit_error;
+//     }
+    
+//     // 获取端口范围
+//     $port_pool = explode(',', $params['configoptions']['port_pool']);
+//     $min_port = (int)$port_pool[0];
+//     $max_port = (int)$port_pool[1];
+    
+//     // 如果未传递外网端口，就按照端口池随机生成
+//     if($post['wan_port']==""){
+//          //$post['wan_port'] = rand(20000,60000);
+//          $post['wan_port'] = rand($min_port,$max_port);
+//     }
+    
+//     $url = $params['configoptions']['ikuai_url']."/Action/call";
     
 
     
-    $data['func_name'] = "dnat";
-    $data['action'] = "add";
-    $data['param'] = [
-     "enabled"=>"yes",
-     "comment"=>$post['comment'],
-     "interface"=>"all",
-     "lan_addr"=> $post['lan_addr'],
-     "protocol"=>$post['type'],
-     "wan_port"=>$post['wan_port'],
-     "lan_port"=>$post['lan_port'],
-     "src_addr"=>""
+//     $data['func_name'] = "dnat";
+//     $data['action'] = "add";
+//     $data['param'] = [
+//      "enabled"=>"yes",
+//      "comment"=>$post['comment'],
+//      "interface"=>"all",
+//      "lan_addr"=> $post['lan_addr'],
+//      "protocol"=>$post['type'],
+//      "wan_port"=>$post['wan_port'],
+//      "lan_port"=>$post['lan_port'],
+//      "src_addr"=>""
      
-     ];
+//      ];
     
-     $info = json_decode(proxmoxlxc_nat_request($params,$url,$data),true);
-     $info['wan_port'] = $post['wan_port'];
-    //  echo json_encode($data);
+//      $info = json_decode(proxmoxlxc_nat_request($params,$url,$data),true);
+//      $info['wan_port'] = $post['wan_port'];
+//     //  echo json_encode($data);
     
-    // 写入后台日志
-     active_logs("执行创建映射函数返回结果:".json_encode($info),$params['uid'],2);
-     return $info;
+//     // 写入后台日志
+//      active_logs("执行创建映射函数返回结果:".json_encode($info),$params['uid'],2);
+//      return $info;
     
-}
+// }
+
+
+
 // 删除映射
-function proxmoxlxc_nat_del($params,$post=""){
-    
-    
+function proxmoxlxc_nat_del($params, $post = "") {
     // 判断是从哪里请求的
-    if($post==""){
+    if ($post == "") {
         // 从前台请求的
         $post = input('post.');
     }
-    
-  
-    
-    $url = $params['configoptions']['ikuai_url']."/Action/call";
-    
 
-    
+    // 构建 API 请求 URL 和数据
+    $url = $params['configoptions']['ikuai_url'] . "/Action/call";
     $data['func_name'] = "dnat";
     $data['action'] = "del";
     $data['param'] = [
-     "id"=>$post['id'],
+        "id" => $post['id'],
+    ];
+
+    // 发送请求并获取响应
+    $info = json_decode(proxmoxlxc_nat_request($params, $url, $data), true);
+
+    // 如果删除成功，处理 port_pool.json 文件
+    if ($info['ErrMsg'] == 'Success') {
+        $port_pool_file_path = __DIR__ . "/port_pool.json";
+
+        if (file_exists($port_pool_file_path)) {
+            // 读取端口池文件
+            $port_pool_file_content = file_get_contents($port_pool_file_path);
+            $port_pool_file_json = json_decode($port_pool_file_content, true);
+
+            // 根据请求中的端口号删除相应记录
+            $wan_port = $post['wan_port'] ?? null;
+            if ($wan_port && array_key_exists($wan_port, $port_pool_file_json)) {
+                unset($port_pool_file_json[$wan_port]);
+
+                // 保存更新后的端口池文件
+                $port_pool_file = fopen($port_pool_file_path, "w");
+                if (flock($port_pool_file, LOCK_EX)) { // 加锁，避免并发问题
+                    fwrite($port_pool_file, json_encode($port_pool_file_json, JSON_PRETTY_PRINT));
+                    fflush($port_pool_file); // 刷新缓冲区
+                    flock($port_pool_file, LOCK_UN); // 解锁
+                }
+                fclose($port_pool_file);
+            } else {
+                // 添加调试日志：未找到要删除的端口
+                active_logs("端口 {$wan_port} 不在端口池中或未指定.", $params['uid'], 2);
+            }
+        } else {
+            // 添加调试日志：文件不存在
+            active_logs("端口池文件不存在: " . $port_pool_file_path, $params['uid'], 2);
+        }
+    } else {
+        // 添加调试日志：API 删除失败
+        active_logs("删除映射 API 返回失败: " . json_encode($info), $params['uid'], 2);
+    }
+
+    // 写入后台日志
+    active_logs("执行删除映射函数返回结果:" . json_encode($info), $params['uid'], 2);
+    return $info;
+}
+
+
+
+
+
+
+// 过时的，不能删除port_pool.json文件中的映射记录
+// 删除映射
+// function proxmoxlxc_nat_del($params,$post=""){
+    
+    
+//     // 判断是从哪里请求的
+//     if($post==""){
+//         // 从前台请求的
+//         $post = input('post.');
+//     }
+    
+  
+    
+//     $url = $params['configoptions']['ikuai_url']."/Action/call";
+    
+
+    
+//     $data['func_name'] = "dnat";
+//     $data['action'] = "del";
+//     $data['param'] = [
+//      "id"=>$post['id'],
     
      
-     ];
+//      ];
     
-     $info = json_decode(proxmoxlxc_nat_request($params,$url,$data),true);
+//      $info = json_decode(proxmoxlxc_nat_request($params,$url,$data),true);
 
-    //  echo json_encode($data);
+//     //  echo json_encode($data);
     
-    // 写入后台日志
-     active_logs("执行删除映射函数返回结果:".json_encode($info),$params['uid'],2);
-     return $info;
+//     // 写入后台日志
+//      active_logs("执行删除映射函数返回结果:".json_encode($info),$params['uid'],2);
+//      return $info;
     
-}
+// }
 
 // 请求方法
 function proxmoxlxc_nat_request($params,$url,$data){
@@ -1331,13 +1716,12 @@ function proxmoxlxc_user_del($params){
 
 // 禁用用户
 function proxmoxlxc_user_ban(){
-    
+    proxmoxlxc_HardOff($params);
     
 }
 
 // 解除禁用用户
 function proxmoxlxc_user_unban(){
-    
     
 }
 
@@ -1379,6 +1763,7 @@ function proxmoxlxc_get_ticket($params){
 function proxmoxlxc_vnc_if($params){
     $curl = curl_init();
     $url = $params['server_http_prefix']."://".$params['server_ip'].":".$params['port']."/novnc/mgnovnc.html";
+    //$url = $params['server_http_prefix']."://".$params['server_ip'].":".$params['port']."/?console=shell&novnc=1";
     curl_setopt($curl,CURLOPT_URL,$url); 
     curl_setopt($curl,CURLOPT_SSL_VERIFYPEER,FALSE); // 屏蔽SSL
     curl_setopt($curl,CURLOPT_SSL_VERIFYHOST,FALSE); // 屏蔽SSL

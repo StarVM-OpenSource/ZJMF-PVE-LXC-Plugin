@@ -43,7 +43,7 @@
             <td>{$params['configoptions']['ikuai_ip']}:{$vo.wan_port}</td>
             <td>{$vo.comment}</td>
             <td>
-                <button type="button" class="btn btn-warning" onclick="DelNat('{$vo.id}')">删除</button>
+                <button type="button" class="btn btn-warning" onclick="DelNat('{$vo.id}','{$vo.wan_port}')">删除</button>
                 
                 
                 
@@ -72,7 +72,7 @@
       <table class="table table-hover  t-text-dark--light-15 sm-text">
         <thead>
           <tr>
-            <th scope="col">可映射数量 ：  114514</th>
+            <th scope="col">可映射数量 ：  {$params['configoptions_upgrade']['nat_limit']}</th>
           </tr>
            <tr>
             <th scope="col">已映射数量 ：  {$list['total']}</th>
@@ -111,7 +111,7 @@
                       
                      <div class="form-group">
                         <label for="name">外网端口</label>
-                        <input type="text" class="form-control" id="nat_wan_port" placeholder="自动分配" disabled="">
+                        <input type="text" class="form-control" id="nat_wan_port" placeholder="留空自动分配">
                       </div>
                       
                       <div class="form-group">
@@ -127,7 +127,7 @@
                       
                       <div class="form-group">
                         <label for="name">备注</label>
-                        <input type="text" class="form-control" id="nat_comment" placeholder="备注114514">
+                        <input type="text" class="form-control" id="nat_comment" placeholder="备注信息">
                       </div>
 
                     
@@ -145,11 +145,19 @@
     function CreateNat(){
 
             
-            var body = {"func":"nat_add","lan_port":nat_lan_port.value,"type":nat_type.value,"comment":nat_comment.value}
+            var body = {"func":"nat_add","wan_port":nat_wan_port.value,"lan_port":nat_lan_port.value,"type":nat_type.value,"comment":nat_comment.value}
             $.post("{$MODULE_CUSTOM_API}",body,function(data,status){
                 if(data.ErrMsg=="Success"){
                     Swal.fire("成功", data.msg, "success");
                     setTimeout(location.reload(),5000)
+                }else if(data.ErrMsg=="ReachLimit"){
+                    Swal.fire("失败", "映射数量达到上限", "error");
+                }else if(data.ErrMsg=="PortUnavailable"){
+                    Swal.fire("失败", "无可用端口", "error");
+                }else if(data.ErrMsg=="PortCantBeUse"){
+                    Swal.fire("失败", "端口不可用", "error");
+                }else if(data.ErrMsg=="IllegalPort"){
+                    Swal.fire("失败", "端口需要介于{$min_port}与{$max_port}之间", "error");
                 }else{
                     Swal.fire("失败", "创建映射失败", "error");
                 }
@@ -161,10 +169,10 @@
         }
     
     // 删除映射
-    function DelNat(id){
+    function DelNat(id,wan_port){
 
             
-            var body = {"func":"nat_del","id":id}
+            var body = {"func":"nat_del","id":id,"wan_port":wan_port}
             $.post("{$MODULE_CUSTOM_API}",body,function(data,status){
                 if(data.ErrMsg=="Success"){
                     Swal.fire("成功", data.msg, "success");

@@ -2,7 +2,7 @@
     <div class="col-xl-8 col-xs-12">
   <div class="card shadow mb-4">
     <div class="card-header py-3">
-      <h6 class="m-0 font-weight-bold text-primary">网络管理</h6>
+      <h6 class="m-0 font-weight-bold text-primary">网络详细信息</h6>
     </div>
     <div class="card-body table-responsive mx-table">
       <table class="table table-hover  t-text-dark--light-15 sm-text">
@@ -34,14 +34,14 @@
         <thead>
             {if $params['configoptions']['nat'] == "nat"}
              <tr>
-                <th scope="col" style="color: red">公网地址 | {$params['configoptions']['ikuai_ip']} </th>
+                <th scope="col" style="color: red">公网地址 : {$params['configoptions']['ikuai_ip']}</th>
             </tr>
              <tr>
-                <th scope="col" style="color: red">可通过端口映射页面映射需要使用的端口 </th>
+                <th scope="col" style="color: red">从公网访问需要在端口映射页面映射端口</th>
             </tr>
              {/if}
           <tr>
-            <th scope="col">网卡名 : {$network['name']} </th>
+            <th scope="col">网卡 : {$network['name']} </th>
           </tr>
            <tr>
             <th scope="col">MAC地址 : {$network['hwaddr']}</th>
@@ -75,9 +75,6 @@
           </tr>
           <tr>
             <th scope="col">可用流量 ： 不受限制</th>
-          </tr>
-          <tr>
-            <th scope="col">牵引阈值 ： 100 G</th>
           </tr>
         </thead>
         

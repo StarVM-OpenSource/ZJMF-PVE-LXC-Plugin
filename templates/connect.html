@@ -2,14 +2,14 @@
 {$test}
   <div class="card shadow mb-4">
     <div class="card-header py-3">
-      <h6 class="m-0 font-weight-bold text-primary">客户端使用账号密码进行连接（推荐）</h6>
+      <h6 class="m-0 font-weight-bold text-primary">SSH连接</h6>
     </div>
  <div class="card-body table-responsive">
-     您可以通过SSH客户端工具远程连接Linux服务器。以下是您服务器的连接信息<br>
+     您可以通过SSH客户端工具远程连接到此Linux服务器。以下是您的服务器的默认连接信息<br>
        <table class="table table-hover  t-text-dark--light-15 sm-text">
         <thead>
           <tr>
-            <th scope="col">服务器连接地址</th>
+            <th scope="col">连接地址</th>
             <th scope="col">端口</th>
             <th scope="col">用户名</th>
             <th scope="col">密码</th>
@@ -19,7 +19,9 @@
             <td>{$params['configoptions']['ikuai_ip']}</td><td>{$port}</td><td>root</td><td>{$params['password']}</td>
         </tr>
         </table>
-    具体连接方法可以参考 <a href="https://imzxw.cn/?p=146" target="_blank">SSH客户端软件连接Linux服务器教程</a>
+    快速连接命令：ssh -p {$port} root@{$params['configoptions']['ikuai_ip']}
+    <br>
+    具体连接方法可以参考 <a href="" target="_blank">SSH客户端软件连接Linux服务器教程</a>
 
   </div>
 
@@ -32,13 +34,14 @@
 {if $vnc}
   <div class="card shadow mb-4">
     <div class="card-header py-3">
-      <h6 class="m-0 font-weight-bold text-primary">使用浏览器发起VNC安全连接</h6>
+      <h6 class="m-0 font-weight-bold text-primary">救援连接</h6>
     </div>
      <div class="card-body">
-         服务器控制台支持通过VNC远程连接服务器，您可以根据业务需求选择该连接方式<br>
+         如您与服务器失联，您仍旧可以通过VNC救援远程连接至服务器<br>
          
-        <button type="button" class="btn btn-success" onclick="connect_vnc()">连接服务器</button>
-        具体使用可以参考 <a href="https://imzxw.cn/?p=147" target="_blank">网页VNC远程操作方法</a>
+        <button type="button" class="btn btn-success" onclick="connect_vnc()">VNC连接</button>
+        <br>
+        具体使用可以参考 <a href="" target="_blank">网页VNC远程操作方法</a>
     </div>
 
   </div>

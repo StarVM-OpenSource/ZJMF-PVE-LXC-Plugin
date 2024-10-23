@@ -6,7 +6,7 @@
     <div class="col-xl-12 col-xs-12">
   <div class="card shadow mb-4">
     <div class="card-header py-3">
-      <h6 class="m-0 font-weight-bold text-primary">映射列表</h6>
+      <h6 class="m-0 font-weight-bold text-primary">快照列表</h6>
     </div>
 
 
@@ -22,7 +22,7 @@
         <thead>
           <tr>
             <th scope="col">快照名称</th>
-            <th scope="col">日期/状态</th>
+            <th scope="col">创建日期/状态</th>
             <th scope="col">描述</th>
             <th scope="col">操作</th>
           </tr>
@@ -63,20 +63,20 @@
             <div class="modal-content">
                 <div class="modal-header">
                     
-                    <h4 class="modal-title" id="myModalLabel">创建一个新的快照</h4>
+                    <h4 class="modal-title" id="myModalLabel">创建快照</h4>
                     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                 </div>
                 <div class="modal-body">
                     
 
                       <div class="form-group">
-                        <label for="name">快照名</label>
-                        <input type="text" class="form-control" id="Snapshot_name" placeholder="快照的名字">
+                        <label for="name">名称</label>
+                        <input type="text" class="form-control" id="Snapshot_name" placeholder="最小2字符，必须以字母开头开始，允许的字符: 'A-Z', 'a-z', '0-9', '_'">
                       </div>
                       
                       <div class="form-group">
                         <label for="name">描述</label>
-                        <textarea class="form-control" id="Snapshot_description" rows="3"></textarea>
+                        <textarea class="form-control" id="Snapshot_description" placeholder="描述快照，小于或等于100字符" rows="3"></textarea>
                       </div>
 
                     
@@ -105,8 +105,10 @@
                 if(data.status=="200"){
                     Swal.fire("成功", data.msg, "success");
                     setTimeout(location.reload(),5000)
+                }else if(data.ErrMsg=="IllegalFormat"){
+                    Swal.fire("Oops！", "提交的表单不符合格式，请检查提交的表单是否符合提示中的格式。", "warning");
                 }else{
-                    Swal.fire("失败", "创建快照失败", "error");
+                    Swal.fire("失败", "创建快照失败，如多次错误请联系管理员。", "error");
                 }
                 
                 
@@ -117,8 +119,8 @@
         function RollBACK(name){
             
             Swal.fire({
-            	title: "回滚警告",
-            	html:"请确定您准备回滚到"+name+"</br>回滚成功后请手动开机",
+            	title: "快照回滚操作警告",
+            	html: "请确定您要回滚到快照："+name+" 吗？</br>如果确定回滚成功后请手动开机",
             	icon: "warning",
             	showCancelButton: true,
             	confirmButtonColor: "#DD6B55",
@@ -160,8 +162,8 @@
             
             
             Swal.fire({
-            	title: "删除警告",
-            	text: "您点错了吗?还是确定要删除"+name,
+            	title: "快照删除操作警告",
+            	html: "您确定要删除掉这个快照吗？</br>快照名称："+name,
             	icon: "warning",
             	showCancelButton: true,
             	confirmButtonColor: "#DD6B55",
