@@ -1,7 +1,7 @@
-# ProxmoxVE-LXC-X-module
+# ProxmoxVE-LXC-X-module-Full-Wiki
 </br>
 
-<h3 align="center">ProxmoxVE LXC X</h3></br>
+<h3 align="center">ProxmoxVE LXC X Full Wiki</h3></br>
 
 本人仅进行了完善Wiki操作，具体以作者模块为准
 
