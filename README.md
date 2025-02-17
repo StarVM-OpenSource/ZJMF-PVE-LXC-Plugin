@@ -3,7 +3,7 @@
 
 <h3 align="center">ProxmoxVE LXC X Full Wiki</h3></br>
 
-本人仅进行了完善Wiki操作，具体以作者模块为准
+本人进行了完善Wiki以及增加一键WebSSH操作(需模板已开root登录)，具体以作者模块为准
 
 本模块的改版作者为：[MasonDye](https://github.com/MasonDye/)
 
