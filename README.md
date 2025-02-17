@@ -3,6 +3,8 @@
 
 <h3 align="center">ProxmoxVE LXC X</h3></br>
 
+本人仅进行了完善Wiki操作，具体以作者模块为准
+
 本模块的改版作者为：[MasonDye](https://github.com/MasonDye/)
 
 改版项目仓库地址：[ProxmoxVE-LXC-X-module](https://github.com/MasonDye/ProxmoxVE-LXC-X-module)
