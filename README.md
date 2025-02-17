@@ -3,6 +3,8 @@
 
 <h3 align="center">ProxmoxVE LXC X</h3></br>
 
+本模块的改版作者为：[MasonDye](https://github.com/MasonDye/)
+
 魔方财务系统对接proxmoxVE的一款模块，可以对接pve的容器功能
 
 此模块是原作者Jovesong1的作品改版，添加了很多有用的功能，修复了一些潜在的Bug。
