@@ -7,7 +7,7 @@
 
 此模块是原作者Jovesong1的作品改版，添加了很多有用的功能，修复了一些潜在的Bug。
 
-我现在正在编写使用文档，如果您迫切使用本模块，请根据代码反推。
+此模块的文档请参考：[Wiki](https://github.com/MasonDye/ProxmoxVE-LXC-X-module/wiki/1.-%E9%A6%96%E9%A1%B5)
 
 <!--gold sponsors start-->
 
